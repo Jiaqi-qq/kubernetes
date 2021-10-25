@@ -1,6 +1,7 @@
 # kubernetes集群部署 —— 二进制方式
 
 ## 1. 创建多台虚拟机，安装Linux操作系统
+> [Ubuntu Server 20.04.3 LTS 配置](https://github.com/1849805767/kubernetes/blob/master/Ubuntu%20Server%2020.04.3%20LTS%20%E5%88%9D%E5%A7%8B%E9%85%8D%E7%BD%AE.md)
 
 ## 2. 操作系统初始化
 
