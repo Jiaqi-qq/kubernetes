@@ -8,12 +8,18 @@
 ## Ubuntu配置
 
 ```shell
-# 下载缺少的模块
-apt install net-tools
+sudo passwd root # 设置root密码
+apt update && apt upgrade # 更新
 
-# 配置ssh可以root登录
-vi /etc/ssh/sshd_config # 将PermitRootLogin 改为 yes
+# 下载缺少的模块
+apt install -y openssh-server net-tools 
+
+# 修改sshd_config，允许root登录
+sudo vi /etc/ssh/sshd_config # 修改PermitRootLogin为yes
 service ssh restart # 重启ssh服务
+
+# 生成密钥
+ssh-keygen
 ```
 
 ## 环境准备
@@ -26,24 +32,23 @@ hostnamectl set-hostname node2
 
 #在master添加hosts(在msster上运行)
 cat >> /etc/hosts << EOF
-192.168.0.200 master01
-192.168.0.201 node01
-192.168.0.202 node02
+192.168.30.128 master1
+192.168.30.129 node1
+192.168.30.130 node2
 EOF
 
 #设置免登录(在msster上运行)
-ssh-keygen
 ssh-copy-id root@node1
 ssh-copy-id root@node2
 
-#把hosts文件复制到node01\02(在msster上运行)
-scp /etc/hosts root@node01:/etc/hosts
-scp /etc/hosts root@node02:/etc/hosts
+#把hosts文件复制到node1\2(在master上运行)
+scp /etc/hosts root@node1:/etc/hosts
+scp /etc/hosts root@node2:/etc/hosts
 
-#关闭防火墙(在3台机运行) 【*】
+#关闭防火墙(在3台机运行) 【默认没有防火墙】
 systemctl stop firewalld && systemctl disable firewalld
 
-#关闭selinux(在3台机运行) 【*】
+#关闭selinux(在3台机运行) 【默认没有selinux】
 sed -i 's/enforcing/disabled/' /etc/selinux/config && setenforce 0
 
 #关闭swap(在3台机运行)
