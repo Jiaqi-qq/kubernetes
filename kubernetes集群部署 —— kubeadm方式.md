@@ -158,7 +158,7 @@ kubeadm init \
 
 ​	成功则会看到如下信息
 
-![image-20211025110018052](.\image-20211025110018052.png)
+![image-20211025110018052](kubernetes%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2%20%E2%80%94%E2%80%94%20kubeadm%E6%96%B9%E5%BC%8F.assets/image-20211025110018052.png)
 
 ```
 mkdir -p $HOME/.kube
@@ -196,7 +196,7 @@ kubectl expose deployment nginx --port=80 --type=NodePort
 kubectl get pod,svc
 ```
 
-![image-20211025115724590](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20211025115724590.png)
+![image-20211025115724590](kubernetes%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2%20%E2%80%94%E2%80%94%20kubeadm%E6%96%B9%E5%BC%8F.assets/image-20211025115724590.png)
 
 通过三台机器任意 ip:30701即可访问
 
