@@ -158,9 +158,7 @@ kubeadm init \
 
 ​	成功则会看到如下信息
 
-![image-20211025110018052](D:\k8s_vm\kubernetes文档\image-20211025110018052.png)
-
-![image-20211025110018052](C:\Users\dell\AppData\Roaming\Typora\typora-user-images\image-20211025110018052.png)
+![image-20211025110018052](.\image-20211025110018052.png)
 
 ```
 mkdir -p $HOME/.kube
