@@ -12,7 +12,8 @@ gzip -f clash.gz -d
 chmod +x clash
 
 # 移动
-mv clash /usr/local/bin/clash
+mkdir /opt/clash
+mv clash /opt/clash/clash
 
 # 配置clash启动服务
 sudo vi /etc/systemd/system/clash.service
@@ -26,24 +27,25 @@ Description=clash daemon
 [Service]
 Type=simple
 User=root
-ExecStart=/usr/bin/clash -d /opt/clash/
+ExecStart=/opt/clash/clash -d /opt/clash/
 Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
 
-# 将你的clash订阅链接yaml文件传到服务器上覆盖 opt/clash/config.yaml
+# 将你的clash订阅链接yaml文件传到服务器上覆盖 /opt/clash/config.yaml
 
 # 设置Clash开机自启
 systemctl daemon-reload
 systemctl enable clash
+systemctl start clash
 
 # 设置代理
-sudo vi /etc/profile
+cat >> /etc/profile << EOF
 
-# 写入下面信息
 export http_proxy=http://localhost:7890
 export https_proxy=http://localhost:7890
+EOF
 
 source /etc/profile # 生效
 
