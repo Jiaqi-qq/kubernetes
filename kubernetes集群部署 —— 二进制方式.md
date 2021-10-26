@@ -801,7 +801,6 @@ cat > ~/TLS/kubeconfig.sh << EOF
 # 指定 apiserver 内网负载均衡地址
 KUBE_APISERVER="https://192.168.30.137:6443" # apiserver IP:PORT 采用SLB ip
 TOKEN="f3b805164ab3482d6e690800f0bcd514" # 与token.csv里保持一致
-
 # 生成 kubelet bootstrap kubeconfig 配置文件
 # 设置集群参数
 kubectl config set-cluster kubernetes \\
@@ -809,25 +808,22 @@ kubectl config set-cluster kubernetes \\
  --embed-certs=true \\
  --server=\${KUBE_APISERVER} \\
  --kubeconfig=bootstrap.kubeconfig
-
 # 设置客户端认证参数
 kubectl config set-credentials "kubelet-bootstrap" \\
  --token=\${TOKEN} \\
  --kubeconfig=bootstrap.kubeconfig
-
 # 设置上下文参数
 kubectl config set-context default \\
  --cluster=kubernetes \\
  --user="kubelet-bootstrap" \\
  --kubeconfig=bootstrap.kubeconfig
-
 # 设置默认上下文
 kubectl config use-context default --kubeconfig=bootstrap.kubeconfig
 EOF
 
-bash ~/TLS/kubeconfig.sh
+bash ~/TLS/kubeconfig.sh # 运行脚本
 
-# 4.拷贝 bootstrap.kubeconfig、ca.pem 到 worker1 节点
+# 4.拷贝 bootstrap.kubeconfig、ca.pem 到 工作目录
 scp m1n1:~/TLS/bootstrap.kubeconfig /opt/kubernetes/cfg/
 scp -r m1n1:~/TLS/k8s/ca.*pem /opt/kubernetes/ssl/
 
@@ -847,10 +843,12 @@ LimitNOFILE=65536
 WantedBy=multi-user.target
 EOF
 
-#6.启动并设置开机启动
+# 6.启动并设置开机启动
 systemctl daemon-reload
 systemctl start kubelet
 systemctl enable kubelet
+
+=====================================================================================
 
 # 7.其余node节点执行
 	# 拷贝 kubelet.conf、bootstrap.kubeconfig、kubelet-config.yml
