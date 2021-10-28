@@ -269,7 +269,7 @@ EOF
 # 4.生成证书
 cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=kubernetes server-csr.json | cfssljson -bare server
 
-# 以上k8s证书暂时不用留到2.7.节kube-apiserver使用。
+# 以上k8s证书暂时不用留到kube-apiserver使用。
 ```
 
 ### 	4.3	生成 kube-proxy 证书
@@ -664,7 +664,7 @@ kubectl get cs
 
 ## 6	部署 Worker Node
 
-### 	6.1	安装Docker
+### 		6.1	安装Docker
 
 ```
 # 下载地址
@@ -710,7 +710,11 @@ EOF
 mkdir /etc/docker 
 cat > /etc/docker/daemon.json << EOF
 {
-  "registry-mirrors": ["https://docker.mirrors.ustc.edu.cn"]
+  "registry-mirrors": [
+      "https://registry.docker-cn.com",
+      "https://cr.console.aliyun.com/",
+      "https://docker.mirrors.ustc.edu.cn"
+    ]
 }
 EOF
 
@@ -720,21 +724,18 @@ systemctl start docker
 systemctl enable docker
 ```
 
-### 	6.2	创建工作目录并拷贝二进制文件
+### 		6.2	创建工作目录并拷贝二进制文件
 
 ```
- # 1.创建工作目录
- mkdir -p /opt/kubernetes/{bin,cfg,ssl,logs} # 所有node都执行
+# 1.创建工作目录
+mkdir -p /opt/kubernetes/{bin,cfg,ssl,logs} # 【所有node都执行】
  
- # 所有node节点拷贝 kubelet、kube-proxy
- scp m1n1:~/kubernetes/server/bin/kubelet /opt/kubernetes/bin/
- scp m1n1:~/kubernetes/server/bin/kube-proxy /opt/kubernetes/bin/
- 
- # 2.拷贝kubernetes目录到worker2和worker3节点上
- scp -r m1n1:/opt/kubernetes /opt/
+# 2.所有node节点拷贝 kubelet、kube-proxy # 【所有node都执行】
+scp m1n1:~/kubernetes/server/bin/kubelet /opt/kubernetes/bin/
+scp m1n1:~/kubernetes/server/bin/kube-proxy /opt/kubernetes/bin/
 ```
 
-### 	6.3	部署 kubelet
+### 		6.3	部署 kubelet
 
 ```
 # 1.创建配置文件
@@ -757,10 +758,9 @@ EOF
 	  –-bootstrap-kubeconfig：首次启动向apiserver申请证书
 	  –-config：配置参数文件
 	  –-cert-dir：kubelet证书生成目录
-	  –-pod-infra-container-image：管理Pod网络容器的镜像
+	  –-pod-infra-container-image：管理Pod网络容器的镜像 
 	
- 
-#2.配置参数文件
+# 2.配置参数文件
 cat > /opt/kubernetes/cfg/kubelet-config.yml << EOF
 kind: KubeletConfiguration
 apiVersion: kubelet.config.k8s.io/v1beta1
@@ -773,59 +773,59 @@ clusterDNS:
 clusterDomain: cluster.local 
 failSwapOn: false
 authentication:
- anonymous:
- enabled: false
- webhook:
- cacheTTL: 2m0s
- enabled: true
- x509:
- clientCAFile: /opt/kubernetes/ssl/ca.pem 
+  anonymous:
+    enabled: false
+  webhook:
+    cacheTTL: 2m0s
+    enabled: true
+  x509:
+    clientCAFile: /opt/kubernetes/ssl/ca.pem 
 authorization:
- mode: Webhook
- webhook:
- cacheAuthorizedTTL: 5m0s
- cacheUnauthorizedTTL: 30s
+  mode: Webhook
+  webhook:
+    cacheAuthorizedTTL: 5m0s
+    cacheUnauthorizedTTL: 30s
 evictionHard:
- imagefs.available: 15%
- memory.available: 100Mi
- nodefs.available: 10%
- nodefs.inodesFree: 5%
+  imagefs.available: 15%
+  memory.available: 100Mi
+  nodefs.available: 10%
+  nodefs.inodesFree: 5%
 maxOpenFiles: 1000000
 maxPods: 110
 EOF
 
-# 3.生成bootstrap.kubeconfig文件
-# 先在master1节点创建kubeconfig.sh脚本来生成
+# 3.生成bootstrap.kubeconfig文件 【切换到master1节点创建kubeconfig.sh脚本来生成】
+cd ~/TLS
 cat > ~/TLS/kubeconfig.sh << EOF
 # !/bin/bash
-# 指定 apiserver 内网负载均衡地址
+	# 指定 apiserver 内网负载均衡地址
 KUBE_APISERVER="https://192.168.30.137:6443" # apiserver IP:PORT 采用SLB ip
 TOKEN="f3b805164ab3482d6e690800f0bcd514" # 与token.csv里保持一致
-# 生成 kubelet bootstrap kubeconfig 配置文件
-# 设置集群参数
+	# 生成 kubelet bootstrap kubeconfig 配置文件
+	# 设置集群参数
 kubectl config set-cluster kubernetes \\
  --certificate-authority=/opt/kubernetes/ssl/ca.pem \\
  --embed-certs=true \\
  --server=\${KUBE_APISERVER} \\
  --kubeconfig=bootstrap.kubeconfig
-# 设置客户端认证参数
+	# 设置客户端认证参数
 kubectl config set-credentials "kubelet-bootstrap" \\
  --token=\${TOKEN} \\
  --kubeconfig=bootstrap.kubeconfig
-# 设置上下文参数
+	# 设置上下文参数
 kubectl config set-context default \\
  --cluster=kubernetes \\
  --user="kubelet-bootstrap" \\
  --kubeconfig=bootstrap.kubeconfig
-# 设置默认上下文
+	# 设置默认上下文
 kubectl config use-context default --kubeconfig=bootstrap.kubeconfig
 EOF
 
-bash ~/TLS/kubeconfig.sh # 运行脚本
+bash kubeconfig.sh # 运行脚本
 
-# 4.拷贝 bootstrap.kubeconfig、ca.pem 到 工作目录
+# 4.拷贝bootstrap.kubeconfig、ca.pem到 worker1
 scp m1n1:~/TLS/bootstrap.kubeconfig /opt/kubernetes/cfg/
-scp -r m1n1:~/TLS/k8s/ca.*pem /opt/kubernetes/ssl/
+scp m1n1:~/TLS/k8s/ca*.pem /opt/kubernetes/ssl/
 
 # 5.systemd管理kubelet
 cat > /usr/lib/systemd/system/kubelet.service << EOF
@@ -848,9 +848,7 @@ systemctl daemon-reload
 systemctl start kubelet
 systemctl enable kubelet
 
-=====================================================================================
-
-# 7.其余node节点执行
+# 7.【所有node执行】
 	# 拷贝 kubelet.conf、bootstrap.kubeconfig、kubelet-config.yml
 	scp m1n1:/opt/kubernetes/cfg/kubelet.conf m1n1:/opt/kubernetes/cfg/bootstrap.kubeconfig  /opt/kubernetes/cfg/ /opt/kubernetes/cfg/kubelet-config.yml 
 	# 修改主机名
@@ -870,7 +868,7 @@ systemctl enable kubelet
 kubectl get csr
 ```
 
-### 	6.4	master批准kubelet证书申请并加入集群
+### 		6.4	master 批准 kubelet 证书申请并加入集群
 
 ```
 # 1.在任何master节点查看kubelet证书请求
@@ -890,15 +888,565 @@ kubectl get node
 # 注：由于网络插件还没有部署，节点会没有准备就绪 NotReady
 ```
 
+### 	6.5	部署 kube-proxy
 
+```
+# 1.在 work1 节点创建配置文件
+cat > /opt/kubernetes/cfg/kube-proxy.conf << EOF
+KUBE_PROXY_OPTS="--logtostderr=false \\
+ --v=2 \\
+ --log-dir=/opt/kubernetes/logs \\
+ --config=/opt/kubernetes/cfg/kube-proxy-config.yml"
+EOF
+
+# 2.配置参数文件
+	# hostnameOverride: k8s-worker1 修改成 worker 节点的主机名
+cat > /opt/kubernetes/cfg/kube-proxy-config.yml << EOF
+kind: KubeProxyConfiguration
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+bindAddress: 0.0.0.0
+metricsBindAddress: 0.0.0.0:10249
+clientConnection:
+  kubeconfig: /opt/kubernetes/cfg/kube-proxy.kubeconfig
+hostnameOverride: k8s-worker1
+clusterCIDR: 10.0.0.0/24
+EOF
+ 
+# 3.生成 kube-proxy.kubeconfig 配置文件 【切换到master1节点创建kube-proxy.sh脚本】
+cd ~/TLS
+cat > ~/TLS/kube-proxy.sh << EOF
+#!/bin/bash
+KUBE_APISERVER="https://192.168.30.137:6443" # apiserver IP:PORT 采用SLB ip
+kubectl config set-cluster kubernetes \\
+  --certificate-authority=/opt/kubernetes/ssl/ca.pem \\
+  --embed-certs=true \\
+  --server=\${KUBE_APISERVER} \\
+  --kubeconfig=kube-proxy.kubeconfig
+kubectl config set-credentials kube-proxy \\
+  --client-certificate=./k8s/kube-proxy.pem \\
+  --client-key=./k8s/kube-proxy-key.pem \\
+  --embed-certs=true \\
+  --kubeconfig=kube-proxy.kubeconfig
+kubectl config set-context default \\
+  --cluster=kubernetes \\
+  --user=kube-proxy \\
+  --kubeconfig=kube-proxy.kubeconfig
+kubectl config use-context default --kubeconfig=kube-proxy.kubeconfig
+EOF
+
+bash kube-proxy.sh # 执行脚本
+
+# kube-proxy.kubeconfig 放到worker1工作目录
+scp m1n1:~/TLS/kube-proxy.kubeconfig /opt/kubernetes/cfg/
+
+# 4.systemd管理kube-proxy
+cat > /usr/lib/systemd/system/kube-proxy.service << EOF
+[Unit]
+Description=Kubernetes Proxy
+After=network.target
+
+[Service]
+EnvironmentFile=/opt/kubernetes/cfg/kube-proxy.conf
+ExecStart=/opt/kubernetes/bin/kube-proxy \$KUBE_PROXY_OPTS
+Restart=on-failure
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# 5.启动并设置开机启动
+systemctl daemon-reload
+systemctl start kube-proxy
+systemctl enable kube-proxy
+
+# 6.验证kube-proxy是否有报错
+journalctl -u kube-proxy
+
+# 7.【所有node执行】
+	scp m1n1:/opt/kubernetes/cfg/kube-proxy*    /opt/kubernetes/cfg/
+	# hostnameOverride: k8s-worker1修改成worker节点的主机名
+	sed -i '7,/hostnameOverride/s/k8s-worker1/k8s-worker2/g' /opt/kubernetes/cfg/kube-proxy-config.yml
+	sed -i '7,/hostnameOverride/s/k8s-worker1/k8s-worker3/g' /opt/kubernetes/cfg/kube-proxy-config.yml
+
+	scp m1n1:/usr/lib/systemd/system/kube-proxy.service /usr/lib/systemd/system/ # 服务
+
+	systemctl daemon-reload
+	systemctl start kube-proxy
+	systemctl enable kube-proxy
+```
+
+### 	6.6	部署 CNI 网络
+
+```
+# 1.下载二进制文件，CNI地址：https://github.com/containernetworking/plugins/releases/
+cd && wget https://github.com/containernetworking/plugins/releases/download/v1.0.1/cni-plugins-linux-amd64-v1.0.1.tgz
+
+# 2.解压并移动默认工作目录
+mkdir /opt/cni && mkdir /opt/cni/bin
+tar zxvf cni-plugins-linux-amd64-v1.0.1.tgz -C /opt/cni/bin/
+
+# 【所有node执行】
+	scp -r m1n1:/opt/cni /opt/
+
+# 2.部署CNI网络
+wget https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+ 
+# 下载完成后默认镜像地址无法访问，修改为docker hub镜像仓库。【这里我没改，因为能访问外网】
+# sed -i -r "s#quay.io/coreos/flannel:.*-amd64#dockerhub能访问到的镜像地址#g" kube-flannel.yml
+ 
+# 3.在 master1 节点执行
+kubectl apply -f kube-flannel.yml
+ 
+# 4.验证CNI网络是否部署成功
+kubectl -n kube-system get pods
+> NAME                    READY   STATUS    RESTARTS   AGE
+  kube-flannel-ds-n9hr6   1/1     Running   0          17m
+  kube-flannel-ds-wbrq6   1/1     Running   0          17m
+  kube-flannel-ds-zmbkq   1/1     Running   0          17m
+  
+kubectl get node
+> NAME          STATUS   ROLES    AGE   VERSION
+  k8s-worker1   Ready    <none>   12h   v1.18.20
+  k8s-worker2   Ready    <none>   12h   v1.18.20
+  k8s-worker3   Ready    <none>   12h   v1.18.20
+  
+# 5.添加worker名ip到hosts【否则会显示找不到主机的错误】
+cat >> /etc/hosts << EOF
+192.168.30.137 k8s-worker1
+192.168.30.138 k8s-worker2
+192.168.30.140 k8s-worker3
+EOF
+```
 
 ---
 
-	### 
+## 8	授权 apiserver 访问 kubelet
+
+```
+# 1.在 master1 节点执行以下
+cat > apiserver-to-kubelet-rbac.yaml << EOF
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  annotations:
+    rbac.authorization.kubernetes.io/autoupdate: "true"
+  labels:
+    kubernetes.io/bootstrapping: rbac-defaults
+  name: system:kube-apiserver-to-kubelet
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - nodes/proxy
+      - nodes/stats
+      - nodes/log
+      - nodes/spec
+      - nodes/metrics
+      - pods/log
+    verbs:
+      - "*"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: system:kube-apiserver
+  namespace: ""
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:kube-apiserver-to-kubelet
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: kubernetes
+EOF
+ 
+# 2.运行该yaml文件
+kubectl apply -f apiserver-to-kubelet-rbac.yaml
+ 
+# 3.验证yaml
+kubectl -n kube-system get clusterrole|grep system:kube-apiserver-to-kubelet
+kubectl -n kube-system get clusterrolebinding|grep system:kube-apiserver
+# 以上命令有返回结果代表apiserver授权访问成功。
+```
+
+---
+
+## 9	新增 Worker Node
+
+```
+> 可以执行Worker Node部署中，【所有node执行】的操作
+
+# 1.拷贝 worker node 涉及内容到新节点
+scp -r m1n1:/opt/kubernetes/ /opt/
+scp -r m1n1/usr/lib/systemd/system/{kubelet,kube-proxy}.service /usr/lib/systemd/system/
+scp -r m1n1:/opt/cni /opt/
+scp m1n1:/opt/kubernetes/ssl/ca.pem /opt/kubernetes/ssl/
+
+# 2.删除kubelet证书和kubeconfig文件，这些文件是证书许可之后生成的
+rm /opt/kubernetes/cfg/kubelet.kubeconfig
+rm -f /opt/kubernetes/ssl/kubelet*
+
+# 3.修改主机名
+vi /opt/kubernetes/cfg/kubelet.conf
+--hostname-override=k8s-worker4
+
+vi /opt/kubernetes/cfg/kube-proxy-config.yml
+hostnameOverride: k8s-worker4
+
+# 4.启动并设置开机启动
+systemctl daemon-reload
+systemctl start kubelet
+systemctl enable kubelet
+systemctl start kube-proxy
+systemctl enable kube-proxy
+
+# 5.在master上批准新node kubelet证书申请
+kubectl get csr
+kubectl certificate approve ....
+```
+
+---
+
+## 10	kubernetes插件部署
+
+### 	10.1	Dashboard部署
+
+```
+# 1.下载Dashboard的yaml文件。官方主页https://github.com/kubernetes/dashboard
+wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.4.0/aio/deploy/recommended.yaml
+
+# 2.默认Dashboard只能集群内部访问，修改Service为NodePort类型，暴露到外部：
+vim recommended.yaml
+...
+---
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    k8s-app: kubernetes-dashboard
+  name: kubernetes-dashboard
+  namespace: kubernetes-dashboard
+spec:
+  type: NodePort   #新增
+  ports:
+    - port: 443
+      targetPort: 8443
+      nodePort: 30001   #新增
+  selector:
+    k8s-app: kubernetes-dashboard
+
+---
+...
+
+kubectl apply -f recommended.yaml
+
+# 3.验证
+kubectl -n kubernetes-dashboard get pod,svc
+> pod状态处于Running说明部署成功
+
+# 5.创建service account并绑定默认cluster-admin管理员集群角色：
+kubectl create serviceaccount dashboard-admin -n kube-system
+kubectl create clusterrolebinding dashboard-admin --clusterrole=cluster-admin --serviceaccount=kube-system:dashboard-admin
+kubectl describe secrets -n kube-system $(kubectl -n kube-system get secret | awk '/dashboard-admin/{print $1}')
+
+# 6.使用输出的token登录Dashboard
+https://worker节点任意ip:30001
+```
+
+### 	10.2	CoreDNS部署
+
+> 使用kubeadm方式，默认就使用了CoreDNS，而二进制安装需要手动操作
+
+```
+# 1.kubernetes与coredns版本对照表 1.18->1.6.7
+https://github.com/coredns/deployment/blob/master/kubernetes/CoreDNS-k8s_version.md
+
+# 2.编写coredns.yaml文件
+```
+
+<details>
+    <summary>coredns.yaml</summary>
+    <pre><code>
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: coredns
+  namespace: kube-system
+  labels:
+      kubernetes.io/cluster-service: "true"
+      addonmanager.kubernetes.io/mode: Reconcile
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    kubernetes.io/bootstrapping: rbac-defaults
+    addonmanager.kubernetes.io/mode: Reconcile
+  name: system:coredns
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - endpoints
+  - services
+  - pods
+  - namespaces
+  verbs:
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  annotations:
+    rbac.authorization.kubernetes.io/autoupdate: "true"
+  labels:
+    kubernetes.io/bootstrapping: rbac-defaults
+    addonmanager.kubernetes.io/mode: EnsureExists
+  name: system:coredns
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:coredns
+subjects:
+- kind: ServiceAccount
+  name: coredns
+  namespace: kube-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns
+  namespace: kube-system
+  labels:
+      addonmanager.kubernetes.io/mode: EnsureExists
+data:
+  Corefile: |
+    .:53 {
+        errors
+        health {
+           lameduck 5s
+        }
+        ready
+        kubernetes cluster.local in-addr.arpa ip6.arpa {
+           pods insecure
+           fallthrough in-addr.arpa ip6.arpa
+           ttl 30
+        }
+        prometheus :9153
+        forward . /etc/resolv.conf
+        cache 30
+        # loop # CoreDNS启动后会通过宿主机的resolv.conf文件去获取上游DNS的信息，因为/etc/resolve.conf中存在 nameserver 127.0.0.53回环地址造成循环引用。
+        reload
+        loadbalance
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coredns
+  namespace: kube-system
+  labels:
+    k8s-app: kube-dns
+    kubernetes.io/cluster-service: "true"
+    addonmanager.kubernetes.io/mode: Reconcile
+    kubernetes.io/name: "CoreDNS"
+spec:
+  # replicas: not specified here:
+  # 1. In order to make Addon Manager do not reconcile this replicas parameter.
+  # 2. Default is 1.
+  # 3. Will be tuned in real time if DNS horizontal auto-scaling is turned on.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      k8s-app: kube-dns
+  template:
+    metadata:
+      labels:
+        k8s-app: kube-dns
+      annotations:
+        seccomp.security.alpha.kubernetes.io/pod: 'docker/default'
+    spec:
+      serviceAccountName: coredns
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+        - key: "CriticalAddonsOnly"
+          operator: "Exists"
+      containers:
+      - name: coredns
+        image: coredns/coredns:1.6.7
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            memory: 170Mi
+          requests:
+            cpu: 100m
+            memory: 70Mi
+        args: [ "-conf", "/etc/coredns/Corefile" ]
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/coredns
+          readOnly: true
+        ports:
+        - containerPort: 53
+          name: dns
+          protocol: UDP
+        - containerPort: 53
+          name: dns-tcp
+          protocol: TCP
+        - containerPort: 9153
+          name: metrics
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 60
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 5
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            add:
+            - NET_BIND_SERVICE
+            drop:
+            - all
+          readOnlyRootFilesystem: true
+      dnsPolicy: Default
+      volumes:
+        - name: config-volume
+          configMap:
+            name: coredns
+            items:
+            - key: Corefile
+              path: Corefile
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube-dns
+  namespace: kube-system
+  annotations:
+    prometheus.io/port: "9153"
+    prometheus.io/scrape: "true"
+  labels:
+    k8s-app: kube-dns
+    kubernetes.io/cluster-service: "true"
+    addonmanager.kubernetes.io/mode: Reconcile
+    kubernetes.io/name: "CoreDNS"
+spec:
+  selector:
+    k8s-app: kube-dns
+  clusterIP: 10.0.0.2    # dns ip
+  ports:
+  - name: dns
+    port: 53
+    protocol: UDP
+  - name: dns-tcp
+    port: 53
+    protocol: TCP
+	</code></pre>
+
+```
+# 3.执行部署命令
+kubectl apply -f coredns.yaml
+
+# 4.查看验证
+kubectl -n kube-system get pods,svc
+
+# 查看configmap
+kubectl get cm coredns -n kube-system -o yaml
+# 编辑configmap
+kubectl -n kube-system edit  cm coredns
+# 重新调度pod使配置生效
+kubectl get pods -n kube-system | grep coredns | awk '{print $1}' | xargs kubectl -n kube-system delete pod
+
+# 5.DNS解析测试
+kubectl run -it --rm dns-test --image=busybox sh
+/# nslookup kubernetes
+/# ping kubernetes
+/# nslookup 163.com
+/# ping 163.com
+
+#如下图
+```
+
+---
+
+## 11	部署nginx测试
+
+```
+# 1.编写yaml文件
+cat >> nginx.yaml << EOF
+apiVersion: apps/v1 # API 版本号
+kind: Deployment # 类型，如：Pod/ReplicationController/Deployment/Service/Ingress
+metadata:
+  name: nginx-app # Kind 的名称
+spec:
+  selector:
+    matchLabels:
+      app: nginx # 容器标签的名字，发布 Service 时，selector 需要和这里对应
+  replicas: 2 # 部署的实例数量
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers: # 配置容器，数组类型，说明可以配置多个容器
+      - name: nginx # 容器名称
+        image: nginx:latest # 容器镜像
+        imagePullPolicy: IfNotPresent # 只有镜像不存在时，才会进行镜像拉取
+        ports:
+        # Pod 端口
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service # 类型是service
+metadata:
+  name: nginx-svc
+spec:
+  type: NodePort
+  ports:
+    - name: http
+      port: 80
+      nodePort: 31000 # 暴露出来可访问的port
+  selector: # 后端pod标签
+    app: nginx
+EOF
+
+# 2.部署
+kubectl apply -f nginx.yaml
+
+# 3.查看
+kubectl get pods,svc
+
+# 4.通过nodeip:31000 即可访问
+```
+
+---
+
+## 12	常用命令
+
+```
+# 查看所有service account
+kubectl get sa --all-namespaces
+
+# 删除pod
+kubectl get deployment --all-namespaces # 查看deployment，如果只删除pod，那么还会重启
+kubectl delete deployment nginx-app # 删除deployment
+```
+
+## 13	脚本
 
 ```
 
 ```
-
-
 
