@@ -4,6 +4,12 @@
 
 ---
 
+> Github地址：https://github.com/1849805767/kubernetes/
+>
+> QQ：1849805767
+
+---
+
 ## 服务器规划
 
 > 3 master + 3 Node。
@@ -1476,9 +1482,18 @@ kubectl attach dns-test -c dns-test -i -t
 kubectl exec dns-test -- cat /etc/resolv.conf
 ```
 
+---
+
 ## 13	脚本
 
 ```
-
+# 持续显示状态
+cat >> kubectl-get.sh << EOF
+while((1))
+do
+  clear && kubectl get deployment,svc,pod,endpoints --all-namespaces -o wide
+  sleep 5s
+done
+EOF
 ```
 
