@@ -28,7 +28,7 @@
 
 ## 2	操作系统初始化
 
-```
+```sh
 # 关闭防火墙
 systemctl stop firewalld
 systemctl disable firewalld
@@ -84,7 +84,7 @@ apt install ntpdate -y && timedatectl set-timezone Asia/Shanghai && ntpdate time
 
 > cfssl是一个开源的证书管理工具，使用json文件生成证书，相比openssl更方便使用。
 
-```
+```sh
 # 在master任意一台主机下载cfssl工具
 wget https://pkg.cfssl.org/R1.2/cfssl_linux-amd64
 wget https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64
@@ -99,7 +99,7 @@ mv cfssl-certinfo_linux-amd64 /usr/bin/cfssl-certinfo
 
 ### 	4.2	生成Etcd证书
 
-```
+```sh
 # 创建证书目录
 mkdir -p ~/TLS/{etcd,k8s}
 cd ~/TLS/etcd
@@ -181,7 +181,7 @@ openssl x509  -noout -text -in server.pem
 
 ### 	4.2	生成 kube-apiserver 证书
 
-```
+```sh
 # 切换工作目录
 cd ~/TLS/k8s/
 
@@ -274,7 +274,7 @@ cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=kube
 
 ### 	4.3	生成 kube-proxy 证书
 
-```
+```sh
 # 切换工作目录
 cd ~/TLS/k8s
 
@@ -322,7 +322,7 @@ cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=kube
 >
 > 以下在 master2 上操作,然后将所需内容拷贝到 master3
 
-```
+```sh
 # 1.下载二进制包
 cd ~/
 wget https://github.com/etcd-io/etcd/releases/download/v3.5.1/etcd-v3.5.1-linux-amd64.tar.gz
@@ -412,7 +412,7 @@ ETCDCTL_API=3 /opt/etcd/bin/etcdctl --cacert=/opt/etcd/ssl/ca.pem --cert=/opt/et
 
 ### 	5.2	下载 kubernetes 
 
-```
+```sh
 # 1.下载二进制包。网址：https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.18.md
 # 只需要下载server，里面包含了Master和worker node二进制
 wget https://dl.k8s.io/v1.18.20/kubernetes-server-linux-amd64.tar.gz
@@ -431,7 +431,7 @@ scp m1n1:/usr/bin/kubectl /usr/bin/
 
 ### 	5.3	部署 kube-apiserver
 
-```
+```sh
 # 1.创建 kube-apiserver 配置文件
 # 两个\\第一个是转义符，第二个是换行符，使用转义符是为了使用EOF保留换行符。
 cat > /opt/kubernetes/cfg/kube-apiserver.conf << EOF
@@ -525,7 +525,7 @@ curl -k https://172.30.3.1:6443/version
 kubectl get cs
 ```
 
-```
+```sh
 启用 TLS Bootstrapping 机制：
 TLS Bootstraping：Master apiserver启用TLS认证后，Node节点kubelet和kube-proxy要与kube-apiserver进行通信，必须使用CA签发的有效证书才可以，当Node节点很多时，这种客户端证书颁发需要大量工作，同样也会增加集群扩展复杂度。为了简化流程，Kubernetes引入了TLS bootstraping机制来自动颁发客户端证书，kubelet会以一个低权限用户自动向apiserver申请证书，kubelet的证书由apiserver动态签署。所以强烈建议在Node上使用这种方式，目前主要用于kubelet，kube-proxy还是由我们统一颁发一个证书。
 
@@ -552,7 +552,7 @@ kube-apiserver配置文件注解：
 
 ### 	5.4	部署 kube-controller-manager
 
-```
+```sh
 # 1.创建部署文件
 cat > /opt/kubernetes/cfg/kube-controller-manager.conf << EOF
 KUBE_CONTROLLER_MANAGER_OPTS="--logtostderr=false \\
@@ -609,7 +609,7 @@ kubectl get cs
 
 ###		5.4	部署 kube-scheduler
 
-```
+```sh
 # 1.创建配置文件
 cat > /opt/kubernetes/cfg/kube-scheduler.conf << EOF
 KUBE_SCHEDULER_OPTS="--logtostderr=false \
@@ -666,7 +666,7 @@ kubectl get cs
 
 ### 		6.1	安装Docker
 
-```
+```sh
 # 下载地址
 wget https://download.docker.com/linux/static/stable/x86_64/docker-18.06.3-ce.tgz 
 
@@ -737,7 +737,7 @@ scp m1n1:~/kubernetes/server/bin/kube-proxy /opt/kubernetes/bin/
 
 ### 		6.3	部署 kubelet
 
-```
+```sh
 # 1.创建配置文件
 	# --hostname-override=k8s-worker1 修改worker节点主机名
 cat > /opt/kubernetes/cfg/kubelet.conf << EOF
@@ -890,7 +890,7 @@ kubectl get node
 
 ### 	6.5	部署 kube-proxy
 
-```
+```sh
 # 1.在 work1 节点创建配置文件
 cat > /opt/kubernetes/cfg/kube-proxy.conf << EOF
 KUBE_PROXY_OPTS="--logtostderr=false \\
@@ -978,7 +978,7 @@ journalctl -u kube-proxy
 
 ### 	6.6	部署 CNI 网络
 
-```
+```sh
 # 1.下载二进制文件，CNI地址：https://github.com/containernetworking/plugins/releases/
 cd && wget https://github.com/containernetworking/plugins/releases/download/v1.0.1/cni-plugins-linux-amd64-v1.0.1.tgz
 
@@ -1023,7 +1023,7 @@ EOF
 
 ## 8	授权 apiserver 访问 kubelet
 
-```
+```sh
 # 1.在 master1 节点执行以下
 cat > apiserver-to-kubelet-rbac.yaml << EOF
 apiVersion: rbac.authorization.k8s.io/v1
@@ -1075,7 +1075,7 @@ kubectl -n kube-system get clusterrolebinding|grep system:kube-apiserver
 
 ## 9	新增 Worker Node
 
-```
+```sh
 > 可以执行Worker Node部署中，【所有node执行】的操作
 
 # 1.拷贝 worker node 涉及内容到新节点
@@ -1113,7 +1113,7 @@ kubectl certificate approve ....
 
 ### 	10.1	Dashboard部署
 
-```
+```sh
 # 1.下载Dashboard的yaml文件。官方主页https://github.com/kubernetes/dashboard
 wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.4.0/aio/deploy/recommended.yaml
 
@@ -1159,7 +1159,7 @@ https://worker节点任意ip:30001
 
 > 使用kubeadm方式，默认就使用了CoreDNS，而二进制安装需要手动操作
 
-```
+```sh
 # 1.kubernetes与coredns版本对照表 1.18->1.6.7
 https://github.com/coredns/deployment/blob/master/kubernetes/CoreDNS-k8s_version.md
 
@@ -1238,7 +1238,7 @@ data:
         prometheus :9153
         forward . /etc/resolv.conf
         cache 30
-        # loop # CoreDNS启动后会通过宿主机的resolv.conf文件去获取上游DNS的信息，因为/etc/resolve.conf中存在 nameserver 127.0.0.53回环地址造成循环引用。
+        loop 
         reload
         loadbalance
     }
@@ -1355,7 +1355,8 @@ spec:
     protocol: TCP
 	</code></pre>
 
-```
+
+```sh
 # 3.执行部署命令
 kubectl apply -f coredns.yaml
 
@@ -1370,20 +1371,48 @@ kubectl -n kube-system edit  cm coredns
 kubectl get pods -n kube-system | grep coredns | awk '{print $1}' | xargs kubectl -n kube-system delete pod
 
 # 5.DNS解析测试
-kubectl run -it --rm dns-test --image=busybox sh
-/# nslookup kubernetes
-/# ping kubernetes
-/# nslookup 163.com
-/# ping 163.com
+kubectl run -it --rm dns-test --image=busybox:1.28 sh # 如果不指定版本号，其他版本的nslookup会出现问题
 
-#如下图
+/# nslookup kubernetes
+> Server:    10.0.0.2
+  Address 1: 10.0.0.2 kube-dns.kube-system.svc.cluster.local
+
+  Name:      kubernetes
+  Address 1: 10.0.0.1 kubernetes.default.svc.cluster.local
+
+/ # nslookup kubernetes-dashboard.kubernetes-dashboard.svc.cluster.local
+> Server:    10.0.0.2
+  Address 1: 10.0.0.2 kube-dns.kube-system.svc.cluster.local\
+
+  Name:      kubernetes-dashboard.kubernetes-dashboard.svc.cluster.local
+  Address 1: 10.0.0.29 kubernetes-dashboard.kubernetes-dashboard.svc.cluster.local
+
+/ # nslookup nginx-svc # 后面有部署教程，可以先去部署nginx
+> Server:    10.0.0.2
+ Address 1: 10.0.0.2 kube-dns.kube-system.svc.cluster.local
+
+ Name:      nginx-svc
+ Address 1: 10.0.0.178 nginx-svc.default.svc.cluster.local
+ 
+# 问题1：coredns始终crashloopbackoff，无法启动
+# CoreDNS启动后会通过宿主机的resolv.conf文件去获取上游DNS的信息，因为/etc/resolve.conf中存在 nameserver 127.0.0.53 回环地址造成循环引用。对于我的机器（Ubuntu Server 20.04.3 LTS）：
+ll /etc/resolv.conf
+> lrwxrwxrwx 1 root root 39 Aug 24 16:42 /etc/resolv.conf -> ../run/systemd/resolve/stub-resolv.conf
+# 解决方案：
+mv /etc/resolv.conf /etc/resolv.conf.back
+ln -s /run/systemd/resolve/resolv.conf /etc/resolv.conf
+
+# 问题2：无法ping通 nginx-svc
+# 正常现象。[k8s iptables模式 svc 不支持ping协议 分析](https://www.yoyoask.com/?p=4742)
+# 使用ubuntu20.04镜像，进入容器，下载curl，执行curl，就会出现nginx网页代码
+curl nginx-svc
 ```
 
 ---
 
 ## 11	部署nginx测试
 
-```
+```sh
 # 1.编写yaml文件
 cat >> nginx.yaml << EOF
 apiVersion: apps/v1 # API 版本号
@@ -1435,13 +1464,16 @@ kubectl get pods,svc
 
 ## 12	常用命令
 
-```
+```sh
 # 查看所有service account
 kubectl get sa --all-namespaces
 
 # 删除pod
 kubectl get deployment --all-namespaces # 查看deployment，如果只删除pod，那么还会重启
 kubectl delete deployment nginx-app # 删除deployment
+
+kubectl attach dns-test -c dns-test -i -t
+kubectl exec dns-test -- cat /etc/resolv.conf
 ```
 
 ## 13	脚本
