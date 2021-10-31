@@ -311,7 +311,7 @@ EOF
 # 4.生成证书
 cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=kubernetes kube-proxy-csr.json | cfssljson -bare kube-proxy
 
-# 以上证书借给2.8节部署kube-proxy使用。
+# 以上证书借给部署kube-proxy使用。
 ```
 
 ---
@@ -356,10 +356,10 @@ EOF
 
 	> ETCD_NAME：节点名称，集群中唯一
 	  ETCD_DATA_DIR：数据目录
-	  ETCD_LISTEN_PEER_URLS：集群通信监听地址
-	  ETCD_LISTEN_CLIENT_URLS：客户端访问监听地址
-	  ETCD_INITIAL_ADVERTISE_PEER_URLS：集群通告地址
-	  ETCD_ADVERTISE_CLIENT_URLS：客户端通告地址
+	  ETCD_LISTEN_PEER_URLS：集群通信监听地址（本机IP）
+	  ETCD_LISTEN_CLIENT_URLS：客户端访问监听地址（本机IP）
+	  ETCD_INITIAL_ADVERTISE_PEER_URLS：集群通告地址（本机IP）
+	  ETCD_ADVERTISE_CLIENT_URLS：客户端通告地址（本机IP）
 	  ETCD_INITIAL_CLUSTER：集群节点地址
 	  ETCD_INITIAL_CLUSTER_TOKEN：集群Token
 	  ETCD_INITIAL_CLUSTER_STATE：加入集群的当前状态，new是新集群，existing表示加入已有集群
@@ -526,7 +526,7 @@ https://192.168.30.137:6443/version
 https://192.168.30.138:6443/version
 https://192.168.30.139:6443/version # 以上地址返回kubernetes版本信息说明正常
 #或在主节点上执行
-curl -k https://172.30.3.1:6443/version
+curl -k https://192.168.30.137:6443/version
 #或者在各节点执行以下命令能看到etcd各节点为健康说明正常
 kubectl get cs
 ```
@@ -1135,11 +1135,11 @@ metadata:
   name: kubernetes-dashboard
   namespace: kubernetes-dashboard
 spec:
-  type: NodePort   #新增
+  type: NodePort   # 在第40行左右添加service的类型为NodePort
   ports:
     - port: 443
       targetPort: 8443
-      nodePort: 30001   #新增
+      nodePort: 30001   # 新增
   selector:
     k8s-app: kubernetes-dashboard
 
@@ -1465,6 +1465,10 @@ kubectl get pods,svc
 
 # 4.通过nodeip:31000 即可访问
 ```
+
+---
+
+
 
 ---
 
