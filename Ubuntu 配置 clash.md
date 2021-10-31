@@ -54,7 +54,9 @@ source /etc/profile # 生效
 
 ----
 
-sudo在切换成root用户时，evn不会保留这些环境变量，需要特别指定【不建议用此方法，可以先su成root用户再使用】
+## sudo命令无法走代理
+
+- sudo在切换成root用户时，evn不会保留这些环境变量，需要特别指定【不建议用此方法，可以先su成root用户再使用】
 
 ```
 # 在 /etc/sudoers中，env_reset下添加
@@ -73,3 +75,12 @@ Defaults env_keep="http_proxy https_proxy ftp_proxy no_proxy
 - 通过pkexec visudo修改。还好一般发行版都留下了pkexec这道门。
 
 还是用最后一种吧，其它三种都更麻烦。
+
+---
+
+## http://clash.razord.top/ 无响应
+
+- [解决谷歌浏览器最新chrome94版本CORS跨域问题](https://zhuanlan.zhihu.com/p/414533145)
+
+
+
