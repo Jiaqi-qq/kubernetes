@@ -439,34 +439,34 @@ scp m1n1:/usr/bin/kubectl /usr/bin/
 
 ```sh
 # 1.创建 kube-apiserver 配置文件
-# 两个\\第一个是转义符，第二个是换行符，使用转义符是为了使用EOF保留换行符。
+# 两个\第一个是转义符，第二个是换行符，使用转义符是为了使用EOF保留换行符。
 cat > /opt/kubernetes/cfg/kube-apiserver.conf << EOF
-KUBE_APISERVER_OPTS="--logtostderr=false \\
---v=2 \\
---log-dir=/opt/kubernetes/logs \\
---etcd-servers=https://192.168.30.137:2379,https://192.168.30.138:2379,https://192.168.30.139:2379 \\
---bind-address=192.168.30.137 \\
---secure-port=6443 \\
---advertise-address=192.168.30.137 \\
---allow-privileged=true \\
---service-cluster-ip-range=10.0.0.0/24 \\
---enable-admission-plugins=NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota,NodeRestriction \\
---authorization-mode=RBAC,Node \\
---enable-bootstrap-token-auth=true \\
---token-auth-file=/opt/kubernetes/cfg/token.csv \\
---service-node-port-range=30000-32767 \\
---kubelet-client-certificate=/opt/kubernetes/ssl/server.pem \\
---kubelet-client-key=/opt/kubernetes/ssl/server-key.pem \\
---tls-cert-file=/opt/kubernetes/ssl/server.pem  \\
---tls-private-key-file=/opt/kubernetes/ssl/server-key.pem \\
---client-ca-file=/opt/kubernetes/ssl/ca.pem \\
---service-account-key-file=/opt/kubernetes/ssl/ca-key.pem \\
---etcd-cafile=/opt/etcd/ssl/ca.pem \\
---etcd-certfile=/opt/etcd/ssl/server.pem \\
---etcd-keyfile=/opt/etcd/ssl/server-key.pem \\
---audit-log-maxage=30 \\
---audit-log-maxbackup=3 \\
---audit-log-maxsize=100 \\
+KUBE_APISERVER_OPTS="--logtostderr=false \
+--v=2 \
+--log-dir=/opt/kubernetes/logs \
+--etcd-servers=https://192.168.30.137:2379,https://192.168.30.138:2379,https://192.168.30.139:2379 \
+--bind-address=192.168.30.137 \
+--secure-port=6443 \
+--advertise-address=192.168.30.137 \
+--allow-privileged=true \
+--service-cluster-ip-range=10.0.0.0/24 \
+--enable-admission-plugins=NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota,NodeRestriction \
+--authorization-mode=RBAC,Node \
+--enable-bootstrap-token-auth=true \
+--token-auth-file=/opt/kubernetes/cfg/token.csv \
+--service-node-port-range=30000-32767 \
+--kubelet-client-certificate=/opt/kubernetes/ssl/server.pem \
+--kubelet-client-key=/opt/kubernetes/ssl/server-key.pem \
+--tls-cert-file=/opt/kubernetes/ssl/server.pem  \
+--tls-private-key-file=/opt/kubernetes/ssl/server-key.pem \
+--client-ca-file=/opt/kubernetes/ssl/ca.pem \
+--service-account-key-file=/opt/kubernetes/ssl/ca-key.pem \
+--etcd-cafile=/opt/etcd/ssl/ca.pem \
+--etcd-certfile=/opt/etcd/ssl/server.pem \
+--etcd-keyfile=/opt/etcd/ssl/server-key.pem \
+--audit-log-maxage=30 \
+--audit-log-maxbackup=3 \
+--audit-log-maxsize=100 \
 --audit-log-path=/opt/kubernetes/logs/k8s-audit.log"
 EOF
  
@@ -491,7 +491,7 @@ Documentation=https://github.com/kubernetes/kubernetes
  
 [Service]
 EnvironmentFile=/opt/kubernetes/cfg/kube-apiserver.conf
-ExecStart=/opt/kubernetes/bin/kube-apiserver \$KUBE_APISERVER_OPTS
+ExecStart=/opt/kubernetes/bin/kube-apiserver $KUBE_APISERVER_OPTS
 Restart=on-failure
  
 [Install]
@@ -561,19 +561,19 @@ kube-apiserver配置文件注解：
 ```sh
 # 1.创建部署文件
 cat > /opt/kubernetes/cfg/kube-controller-manager.conf << EOF
-KUBE_CONTROLLER_MANAGER_OPTS="--logtostderr=false \\
---v=2 \\
---log-dir=/opt/kubernetes/logs \\
---leader-elect=true \\
---master=127.0.0.1:8080 \\
---bind-address=127.0.0.1 \\
---allocate-node-cidrs=true \\
---cluster-cidr=10.244.0.0/16 \\
---service-cluster-ip-range=10.0.0.0/24 \\
---cluster-signing-cert-file=/opt/kubernetes/ssl/ca.pem \\
---cluster-signing-key-file=/opt/kubernetes/ssl/ca-key.pem  \\
---root-ca-file=/opt/kubernetes/ssl/ca.pem \\
---service-account-private-key-file=/opt/kubernetes/ssl/ca-key.pem \\
+KUBE_CONTROLLER_MANAGER_OPTS="--logtostderr=false \
+--v=2 \
+--log-dir=/opt/kubernetes/logs \
+--leader-elect=true \
+--master=127.0.0.1:8080 \
+--bind-address=127.0.0.1 \
+--allocate-node-cidrs=true \
+--cluster-cidr=10.244.0.0/16 \
+--service-cluster-ip-range=10.0.0.0/24 \
+--cluster-signing-cert-file=/opt/kubernetes/ssl/ca.pem \
+--cluster-signing-key-file=/opt/kubernetes/ssl/ca-key.pem  \
+--root-ca-file=/opt/kubernetes/ssl/ca.pem \
+--service-account-private-key-file=/opt/kubernetes/ssl/ca-key.pem \
 --experimental-cluster-signing-duration=438000h0m0s"
 EOF
 	> -–master：通过本地非安全本地端口8080连接apiserver。
@@ -588,7 +588,7 @@ Documentation=https://github.com/kubernetes/kubernetes
 
 [Service]
 EnvironmentFile=/opt/kubernetes/cfg/kube-controller-manager.conf
-ExecStart=/opt/kubernetes/bin/kube-controller-manager \$KUBE_CONTROLLER_MANAGER_OPTS
+ExecStart=/opt/kubernetes/bin/kube-controller-manager $KUBE_CONTROLLER_MANAGER_OPTS
 Restart=on-failure
 
 [Install]
@@ -637,7 +637,7 @@ Documentation=https://github.com/kubernetes/kubernetes
 
 [Service]
 EnvironmentFile=/opt/kubernetes/cfg/kube-scheduler.conf
-ExecStart=/opt/kubernetes/bin/kube-scheduler \$KUBE_SCHEDULER_OPTS
+ExecStart=/opt/kubernetes/bin/kube-scheduler $KUBE_SCHEDULER_OPTS
 Restart=on-failure
 
 [Install]
@@ -698,7 +698,7 @@ Wants=network-online.target
 [Service]
 Type=notify
 ExecStart=/usr/bin/dockerd
-ExecReload=/bin/kill -s HUP \$MAINPID
+ExecReload=/bin/kill -s HUP $MAINPID
 LimitNOFILE=infinity
 LimitNPROC=infinity
 LimitCORE=infinity
@@ -747,15 +747,15 @@ scp m1n1:~/kubernetes/server/bin/kube-proxy /opt/kubernetes/bin/
 # 1.创建配置文件
 	# --hostname-override=k8s-worker1 修改worker节点主机名
 cat > /opt/kubernetes/cfg/kubelet.conf << EOF
-KUBELET_OPTS="--logtostderr=false \\
---v=2 \\
---log-dir=/opt/kubernetes/logs \\
---hostname-override=k8s-worker1 \\
---network-plugin=cni \\
---kubeconfig=/opt/kubernetes/cfg/kubelet.kubeconfig \\
---bootstrap-kubeconfig=/opt/kubernetes/cfg/bootstrap.kubeconfig \\
---config=/opt/kubernetes/cfg/kubelet-config.yml \\
---cert-dir=/opt/kubernetes/ssl \\
+KUBELET_OPTS="--logtostderr=false \
+--v=2 \
+--log-dir=/opt/kubernetes/logs \
+--hostname-override=k8s-worker1 \
+--network-plugin=cni \
+--kubeconfig=/opt/kubernetes/cfg/kubelet.kubeconfig \
+--bootstrap-kubeconfig=/opt/kubernetes/cfg/bootstrap.kubeconfig \
+--config=/opt/kubernetes/cfg/kubelet-config.yaml \
+--cert-dir=/opt/kubernetes/ssl \
 --pod-infra-container-image=mirrorgooglecontainers/pause-amd64:3.0"
 EOF
 	> –-hostname-override：在集群中显示的主机名，唯一
@@ -767,7 +767,7 @@ EOF
 	  –-pod-infra-container-image：管理Pod网络容器的镜像 
 	
 # 2.配置参数文件
-cat > /opt/kubernetes/cfg/kubelet-config.yml << EOF
+cat > /opt/kubernetes/cfg/kubelet-config.yaml << EOF
 kind: KubeletConfiguration
 apiVersion: kubelet.config.k8s.io/v1beta1
 address: 0.0.0.0
@@ -809,19 +809,19 @@ KUBE_APISERVER="https://192.168.30.137:6443" # apiserver IP:PORT 采用SLB ip
 TOKEN="f3b805164ab3482d6e690800f0bcd514" # 与token.csv里保持一致
 	# 生成 kubelet bootstrap kubeconfig 配置文件
 	# 设置集群参数
-kubectl config set-cluster kubernetes \\
- --certificate-authority=/opt/kubernetes/ssl/ca.pem \\
- --embed-certs=true \\
- --server=\${KUBE_APISERVER} \\
+kubectl config set-cluster kubernetes \
+ --certificate-authority=/opt/kubernetes/ssl/ca.pem \
+ --embed-certs=true \
+ --server=${KUBE_APISERVER} \
  --kubeconfig=bootstrap.kubeconfig
 	# 设置客户端认证参数
-kubectl config set-credentials "kubelet-bootstrap" \\
- --token=\${TOKEN} \\
+kubectl config set-credentials "kubelet-bootstrap" \
+ --token=${TOKEN} \
  --kubeconfig=bootstrap.kubeconfig
 	# 设置上下文参数
-kubectl config set-context default \\
- --cluster=kubernetes \\
- --user="kubelet-bootstrap" \\
+kubectl config set-context default \
+ --cluster=kubernetes \
+ --user="kubelet-bootstrap" \
  --kubeconfig=bootstrap.kubeconfig
 	# 设置默认上下文
 kubectl config use-context default --kubeconfig=bootstrap.kubeconfig
@@ -841,7 +841,7 @@ After=docker.service
 
 [Service]
 EnvironmentFile=/opt/kubernetes/cfg/kubelet.conf
-ExecStart=/opt/kubernetes/bin/kubelet \$KUBELET_OPTS
+ExecStart=/opt/kubernetes/bin/kubelet $KUBELET_OPTS
 Restart=on-failure
 LimitNOFILE=65536
 
@@ -855,8 +855,8 @@ systemctl start kubelet
 systemctl enable kubelet
 
 # 7.【所有node执行】
-	# 拷贝 kubelet.conf、bootstrap.kubeconfig、kubelet-config.yml
-	scp m1n1:/opt/kubernetes/cfg/kubelet.conf m1n1:/opt/kubernetes/cfg/bootstrap.kubeconfig  /opt/kubernetes/cfg/ /opt/kubernetes/cfg/kubelet-config.yml 
+	# 拷贝 kubelet.conf、bootstrap.kubeconfig、kubelet-config.yaml
+	scp m1n1:/opt/kubernetes/cfg/kubelet.conf m1n1:/opt/kubernetes/cfg/bootstrap.kubeconfig  /opt/kubernetes/cfg/ /opt/kubernetes/cfg/kubelet-config.yaml 
 	# 修改主机名
 	sed -i '4,/hostname/s/k8s-worker1/k8s-worker2/g' /opt/kubernetes/cfg/kubelet.conf 
 	sed -i '4,/hostname/s/k8s-worker1/k8s-worker3/g' /opt/kubernetes/cfg/kubelet.conf
@@ -899,15 +899,15 @@ kubectl get node
 ```sh
 # 1.在 work1 节点创建配置文件
 cat > /opt/kubernetes/cfg/kube-proxy.conf << EOF
-KUBE_PROXY_OPTS="--logtostderr=false \\
- --v=2 \\
- --log-dir=/opt/kubernetes/logs \\
- --config=/opt/kubernetes/cfg/kube-proxy-config.yml"
+KUBE_PROXY_OPTS="--logtostderr=false \
+ --v=2 \
+ --log-dir=/opt/kubernetes/logs \
+ --config=/opt/kubernetes/cfg/kube-proxy-config.yaml"
 EOF
 
 # 2.配置参数文件
 	# hostnameOverride: k8s-worker1 修改成 worker 节点的主机名
-cat > /opt/kubernetes/cfg/kube-proxy-config.yml << EOF
+cat > /opt/kubernetes/cfg/kube-proxy-config.yaml << EOF
 kind: KubeProxyConfiguration
 apiVersion: kubeproxy.config.k8s.io/v1alpha1
 bindAddress: 0.0.0.0
@@ -923,19 +923,19 @@ cd ~/TLS
 cat > ~/TLS/kube-proxy.sh << EOF
 #!/bin/bash
 KUBE_APISERVER="https://192.168.30.137:6443" # apiserver IP:PORT 采用SLB ip
-kubectl config set-cluster kubernetes \\
-  --certificate-authority=/opt/kubernetes/ssl/ca.pem \\
-  --embed-certs=true \\
-  --server=\${KUBE_APISERVER} \\
+kubectl config set-cluster kubernetes \
+  --certificate-authority=/opt/kubernetes/ssl/ca.pem \
+  --embed-certs=true \
+  --server=${KUBE_APISERVER} \
   --kubeconfig=kube-proxy.kubeconfig
-kubectl config set-credentials kube-proxy \\
-  --client-certificate=./k8s/kube-proxy.pem \\
-  --client-key=./k8s/kube-proxy-key.pem \\
-  --embed-certs=true \\
+kubectl config set-credentials kube-proxy \
+  --client-certificate=./k8s/kube-proxy.pem \
+  --client-key=./k8s/kube-proxy-key.pem \
+  --embed-certs=true \
   --kubeconfig=kube-proxy.kubeconfig
-kubectl config set-context default \\
-  --cluster=kubernetes \\
-  --user=kube-proxy \\
+kubectl config set-context default \
+  --cluster=kubernetes \
+  --user=kube-proxy \
   --kubeconfig=kube-proxy.kubeconfig
 kubectl config use-context default --kubeconfig=kube-proxy.kubeconfig
 EOF
@@ -953,7 +953,7 @@ After=network.target
 
 [Service]
 EnvironmentFile=/opt/kubernetes/cfg/kube-proxy.conf
-ExecStart=/opt/kubernetes/bin/kube-proxy \$KUBE_PROXY_OPTS
+ExecStart=/opt/kubernetes/bin/kube-proxy $KUBE_PROXY_OPTS
 Restart=on-failure
 LimitNOFILE=65536
 
@@ -972,8 +972,8 @@ journalctl -u kube-proxy
 # 7.【所有node执行】
 	scp m1n1:/opt/kubernetes/cfg/kube-proxy*    /opt/kubernetes/cfg/
 	# hostnameOverride: k8s-worker1修改成worker节点的主机名
-	sed -i '7,/hostnameOverride/s/k8s-worker1/k8s-worker2/g' /opt/kubernetes/cfg/kube-proxy-config.yml
-	sed -i '7,/hostnameOverride/s/k8s-worker1/k8s-worker3/g' /opt/kubernetes/cfg/kube-proxy-config.yml
+	sed -i '7,/hostnameOverride/s/k8s-worker1/k8s-worker2/g' /opt/kubernetes/cfg/kube-proxy-config.yaml
+	sed -i '7,/hostnameOverride/s/k8s-worker1/k8s-worker3/g' /opt/kubernetes/cfg/kube-proxy-config.yaml
 
 	scp m1n1:/usr/lib/systemd/system/kube-proxy.service /usr/lib/systemd/system/ # 服务
 
@@ -996,13 +996,13 @@ tar zxvf cni-plugins-linux-amd64-v1.0.1.tgz -C /opt/cni/bin/
 	scp -r m1n1:/opt/cni /opt/
 
 # 2.部署CNI网络
-wget https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+wget https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yaml
  
 # 下载完成后默认镜像地址无法访问，修改为docker hub镜像仓库。【这里我没改，因为能访问外网】
-# sed -i -r "s#quay.io/coreos/flannel:.*-amd64#dockerhub能访问到的镜像地址#g" kube-flannel.yml
+# sed -i -r "s#quay.io/coreos/flannel:.*-amd64#dockerhub能访问到的镜像地址#g" kube-flannel.yaml
  
 # 3.在 master1 节点执行
-kubectl apply -f kube-flannel.yml
+kubectl apply -f kube-flannel.yaml
  
 # 4.验证CNI网络是否部署成功
 kubectl -n kube-system get pods
@@ -1098,7 +1098,7 @@ rm -f /opt/kubernetes/ssl/kubelet*
 vi /opt/kubernetes/cfg/kubelet.conf
 --hostname-override=k8s-worker4
 
-vi /opt/kubernetes/cfg/kube-proxy-config.yml
+vi /opt/kubernetes/cfg/kube-proxy-config.yaml
 hostnameOverride: k8s-worker4
 
 # 4.启动并设置开机启动
