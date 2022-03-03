@@ -718,7 +718,6 @@ cat > /etc/docker/daemon.json << EOF
 {
   "registry-mirrors": [
       "https://registry.docker-cn.com",
-      "https://cr.console.aliyun.com/",
       "https://docker.mirrors.ustc.edu.cn"
     ]
 }
@@ -876,7 +875,7 @@ kubectl get csr
 
 ### 		6.4	master 批准 kubelet 证书申请并加入集群
 
-```
+```sh
 # 1.在任何master节点查看kubelet证书请求
 kubectl get csr
 
