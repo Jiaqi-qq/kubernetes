@@ -313,16 +313,63 @@ EOF
 
 ---
 
-## 10	tools
+## 10	其他
 
 ```shell
+# shell脚本
+cat > kubectl.sh << EOF
 while((1))
 do
   clear && kubectl get node,deployment,svc,pod,endpoints --all-namespaces -o wide
   sleep 3s
 done
+EOF
+
+# 添加可执行权限
+chmod +x kubectl.sh
+
+# nginx.yaml
+cat > nginx.yaml << EOF
+apiVersion: apps/v1 # API 版本号
+kind: Deployment # 类型，如：Pod/ReplicationController/Deployment/Service/Ingress
+metadata:
+  name: nginx-app # Kind 的名称
+spec:
+  selector:
+    matchLabels:
+      app: nginx # 容器标签的名字，发布 Service 时，selector 需要和这里对应
+  replicas: 2 # 部署的实例数量
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers: # 配置容器，数组类型，说明可以配置多个容器
+      - name: nginx # 容器名称
+        image: nginx:latest # 容器镜像
+        imagePullPolicy: IfNotPresent # 只有镜像不存在时，才会进行镜像拉取
+        ports:
+        # Pod 端口
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service # 类型是service
+metadata:
+  name: nginx-svc
+spec:
+  type: NodePort
+  ports:
+    - name: http
+      port: 80
+      nodePort: 30001 # 暴露出来可访问的port
+  selector: # 后端pod标签
+    app: nginx
+EOF
+
+# 应用nginx
+kubectl apply -f nginx.yaml
 ```
 
 ---
 
-![image-20220303234107624](C:\Users\Q-DELL_G7\AppData\Roaming\Typora\typora-user-images\image-20220303234107624.png)
+![image-20220304214422579](C:\Users\Q-DELL_G7\AppData\Roaming\Typora\typora-user-images\image-20220304214422579.png)
