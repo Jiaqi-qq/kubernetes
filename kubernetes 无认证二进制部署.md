@@ -372,4 +372,4 @@ kubectl apply -f nginx.yaml
 
 ---
 
-![image-20220304215248008](kubernetes 无认证二进制部署.assets/image-20220304215248008.png)
+![image-20220304215248008](kubernetes%20%E6%97%A0%E8%AE%A4%E8%AF%81%E4%BA%8C%E8%BF%9B%E5%88%B6%E9%83%A8%E7%BD%B2.assets/image-20220304215248008.png)
