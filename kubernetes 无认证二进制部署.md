@@ -8,7 +8,7 @@
 
 ## 1	操作系统初始化
 
-```sh
+```shell
 # 关闭防火墙
 systemctl stop firewalld
 systemctl disable firewalld
@@ -20,19 +20,24 @@ setenforce 0 # 临时
 # 关闭swap
 sed -ri 's/.*swap.*/#&/' /etc/fstab # 永久
 swapoff -a # 临时
+
+# ----------------------------
+# 本机 ip : 192.168.189.132
+# 本机 名称 q-virtual-machine
+# ----------------------------
 ```
 
 ---
 
 ## 2	Etcd
 
-```sh
+```shell
 # 1.下载二进制包
 cd ~/
 wget https://github.com/etcd-io/etcd/releases/download/v3.5.1/etcd-v3.5.1-linux-amd64.tar.gz
 
 # 2.创建工作目录，解压二进制包
-mkdir /opt/etcd/{bin,cfg} -p
+mkdir /opt/etcd/{bin,cfg,data} -p
 tar zxvf etcd-v3.5.1-linux-amd64.tar.gz
 mv etcd-v3.5.1-linux-amd64/{etcd,etcdctl} /opt/etcd/bin/
 
@@ -40,7 +45,7 @@ mv etcd-v3.5.1-linux-amd64/{etcd,etcdctl} /opt/etcd/bin/
 cat > /opt/etcd/cfg/etcd.conf << EOF
 #[Member]
 ETCD_NAME="etcd"
-ETCD_DATA_DIR="/var/lib/etcd/default.etcd"
+ETCD_DATA_DIR="/opt/etcd/data/default.etcd"
 ETCD_LISTEN_PEER_URLS="http://192.168.189.132:2380"
 ETCD_LISTEN_CLIENT_URLS="http://192.168.189.132:2379"
 
@@ -80,10 +85,10 @@ systemctl enable etcd
 
 ## 3	下载kubernetes
 
-```sh
-# 1.下载二进制包。网址：https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.13.md
+```shell
+# 1.下载二进制包。网址：https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.18.md
 # 只需要下载server，里面包含了Master和worker node二进制
-wget https://dl.k8s.io/v1.13.0/kubernetes-server-linux-amd64.tar.gz
+wget https://dl.k8s.io/v1.18.20/kubernetes-server-linux-amd64.tar.gz
 
 # 2.将所需的组件放到/opt/下
 mkdir -p /opt/kubernetes/{bin,cfg,logs}
@@ -96,20 +101,20 @@ cp kubectl /usr/bin
 
 ## 4	kube-apiserver
 
-```sh
+```shell
 # 1.kube-apiserver 配置文件
+# 重点: 准入控制器删除ServiceAccount
 cat > /opt/kubernetes/cfg/kube-apiserver.conf << EOF
 KUBE_APISERVER_OPTS="--logtostderr=false \
 --v=2 \
 --log-dir=/opt/kubernetes/logs \
 --etcd-servers=http://192.168.189.132:2379 \
 --insecure-bind-address=0.0.0.0 \
---insecure-port=8080 \
+--port=8080 \
 --advertise-address=192.168.189.132 \
---allow-privileged=true \
 --service-cluster-ip-range=10.0.0.0/24 \
---service-node-port-range=30000-32767 \
---enable-swagger-ui=true"
+--enable-swagger-ui=true \
+--admission-control=NamespaceLifecycle,NamespaceExists,LimitRanger,SecurityContextDeny,ResourceQuota"
 EOF
 
 # 2.systemd管理apiserve
@@ -130,13 +135,13 @@ EOF
 
 ## 5	kube-controller-manager
 
-```sh
+```shell
 # 1.创建部署文件
 cat > /opt/kubernetes/cfg/kube-controller-manager.conf << EOF
 KUBE_CONTROLLER_MANAGER_OPTS="--logtostderr=false \
 --v=2 \
 --log-dir=/opt/kubernetes/logs \
---kubeconfig=/opt/kubernetes/cfg/kubeconfig.yaml"
+--master=http://192.168.189.132:8080"
 EOF
 
 # 2.systemd管理controller-manager
@@ -155,34 +160,15 @@ WantedBy=multi-user.target
 EOF
 ```
 
-```sh
-# kubeconfig.yaml
-apiVersion: v1
-kind: Config
-users:
-- name: client
-  user:
-clusters:
-- name: default
-  cluster:
-    server: http://192.168.189.132:8080
-contexts:
-- context:
-    cluster: default
-    user: client
-  name: default
-current-context: default
-```
-
 ## 6	kube-scheduler
 
-```sh
+```shell
 # 1.创建配置文件
 cat > /opt/kubernetes/cfg/kube-scheduler.conf << EOF
 KUBE_SCHEDULER_OPTS="--logtostderr=false \
 --v=2 \
 --log-dir=/opt/kubernetes/logs \
---kubeconfig=/opt/kubernetes/cfg/kubeconfig.yaml"
+--master=http://192.168.189.132:8080"
 EOF
 
 # 2.systemd管理scheduler
@@ -203,7 +189,7 @@ EOF
 
 ## 7	Docker
 
-```sh
+```shell
 # 1.下载地址
 wget https://download.docker.com/linux/static/stable/x86_64/docker-20.10.9.tgz 
 
@@ -249,14 +235,17 @@ EOF
 
 ## 8	kubelet
 
-```sh
+```shell
 # 1.创建配置文件
+# pod-infra-container-image: 指定pod名称空间容器将使用的镜像, 默认k8s.gcr.io/pause:3.2无法使用
+# kubeconfig: 指定如何连接到API服务器, 省略则启用独立模式
 cat > /opt/kubernetes/cfg/kubelet.conf << EOF
 KUBELET_OPTS="--logtostderr=false \
 --v=2 \
 --log-dir=/opt/kubernetes/logs \
---hostname-override=k8s-node-q \
---kubeconfig=/opt/kubernetes/cfg/kubeconfig.yaml"
+--hostname-override=q-virtual-machine \
+--kubeconfig=/opt/kubernetes/cfg/kubeconfig.yaml \
+--pod-infra-container-image=mirrorgooglecontainers/pause-amd64:3.0"
 EOF
 
 # 2.systemd管理kubelet
@@ -275,15 +264,35 @@ WantedBy=multi-user.target
 EOF
 ```
 
+```shell
+cat > /opt/kubernetes/cfg/kubeconfig.yaml << EOF
+apiVersion: v1
+kind: Config
+users:
+- name: client
+  user:
+clusters:
+- name: default
+  cluster:
+    server: http://192.168.189.132:8080
+contexts:
+- context:
+    cluster: default
+    user: client
+  name: default
+current-context: default
+EOF
+```
+
 ## 9	kube-proxy
 
-```sh
+```shell
 # 1.创建配置文件
 cat > /opt/kubernetes/cfg/kube-proxy.conf << EOF
 KUBE_PROXY_OPTS="--logtostderr=false \
  --v=2 \
  --log-dir=/opt/kubernetes/logs \
- --kubeconfig=/opt/kubernetes/cfg/kubeconfig.yaml"
+ --master=http://192.168.189.132:8080"
 EOF
 
 # 2.systemd管理kube-proxy
@@ -306,7 +315,7 @@ EOF
 
 ## 10	tools
 
-```
+```shell
 while((1))
 do
   clear && kubectl get node,deployment,svc,pod,endpoints --all-namespaces -o wide
