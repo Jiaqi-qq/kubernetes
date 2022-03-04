@@ -372,4 +372,4 @@ kubectl apply -f nginx.yaml
 
 ---
 
-![image-20220304215248008](D:\Program Files (x86)\VMware\VMware Virtual Machine\k8s_vm\笔记——kubernetes\kubernetes 无认证二进制部署.assets\image-20220304215248008-16464019715271.png)
+![image-20220304215248008](kubernetes 无认证二进制部署.assets/image-20220304215248008.png)
